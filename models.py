@@ -4,12 +4,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from collections import Counter
+from scipy.spatial import distance
 from sklearn import metrics
 import matplotlib.pyplot as plt
 import seaborn as sns
+import statistics
 import pandas as pd
-import math
 
 #%% PCA
 
@@ -23,7 +23,31 @@ scaler = StandardScaler()
 scaler.fit(features)
 st_data = scaler.transform(features)
 
-#PCA implementation
+#%% PCA for data visualization
+
+pca = PCA(n_components=2)
+principalComponents = pca.fit_transform(features)
+principalDf = pd.DataFrame(data = principalComponents, columns = ['principal component 1', 'principal component 2'])
+
+finalDf = pd.concat([principalDf, labels], axis = 1)
+
+fig = plt.figure(figsize = (8,8))
+ax = fig.add_subplot(1,1,1) 
+ax.set_xlabel('Principal Component 1', fontsize = 15)
+ax.set_ylabel('Principal Component 2', fontsize = 15)
+ax.set_title('2 component PCA', fontsize = 20)
+targets = [0,1]
+colors = ['r','b']
+for target, color in zip(targets,colors):
+    indicesToKeep = finalDf['group'] == target
+    ax.scatter(finalDf.loc[indicesToKeep, 'principal component 1']
+               , finalDf.loc[indicesToKeep, 'principal component 2']
+               , c = color
+               , s = 50)
+ax.legend(targets)
+ax.grid()
+
+#%% PCA to Speed-up Machine Learning Algorithms
 pca = PCA(.95)
 pca.fit(st_data)
 pca_data = pca.transform(st_data)
@@ -111,53 +135,61 @@ plt.title(all_sample_title, size = 15)
 
 #%% KNN
 
-def knn(data, query, k, distance_fn, choice_fn):
+def knn(data, query, k):
+
     neighbor_distances_and_indices = []
     
-    # 3. For each example in the data
-    for index, example in enumerate(data):
-        # 3.1 Calculate the distance between the query example and the current
-        # example from the data.
-        distance = distance_fn(example[:-1], query)
+    for index, child in enumerate(data.values):
+        # Calculate the distance between the query example and the current example from the data.
+        dist = distance.euclidean(child[:-1], query)
         
-        # 3.2 Add the distance and the index of the example to an ordered collection
-        neighbor_distances_and_indices.append((distance, index))
+        # Add the distance and the index of the example to an ordered collection
+        neighbor_distances_and_indices.append((dist, index))
     
-    # 4. Sort the ordered collection of distances and indices from
+    # Sort the ordered collection of distances and indices from
     # smallest to largest (in ascending order) by the distances
     sorted_neighbor_distances_and_indices = sorted(neighbor_distances_and_indices)
     
-    # 5. Pick the first K entries from the sorted collection
+    # Pick the first K entries from the sorted collection
     k_nearest_distances_and_indices = sorted_neighbor_distances_and_indices[:k]
+
+    # Get the labels of the selected K entries
+    k_nearest_labels = [data.values[i][-1] for distance, i in k_nearest_distances_and_indices]
+
+    return statistics.mode(k_nearest_labels)
+
+#%% KNN original data
+data = pd.concat([ft_train_o, l_train_o], axis = 1)
+predictions=[]
+
+for child in ft_val_o.values:
+    clf_prediction = knn(data, child, k=5)
+    predictions.append(clf_prediction)
+
+cm = metrics.confusion_matrix(l_val_o, predictions)
+acc = metrics.accuracy_score(l_val_o, predictions)
+
+plt.figure(figsize=(9,9))
+sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'PuRd_r')
+plt.ylabel('Actual label')
+plt.xlabel('Predicted label')
+all_sample_title = 'Accuracy Score: {0}'.format(round(acc,2))
+plt.title(all_sample_title, size = 15)
     
-    # 6. Get the labels of the selected K entries
-    k_nearest_labels = [data[i][-1] for distance, i in k_nearest_distances_and_indices]
+#%% KNN PCA data 
+data = pd.concat([ft_train_pca, l_train_pca], axis = 1)
+predictions=[]
 
-    # 7. If regression (choice_fn = mean), return the average of the K labels
-    # 8. If classification (choice_fn = mode), return the mode of the K labels
-    return k_nearest_distances_and_indices , choice_fn(k_nearest_labels)
+for child in ft_val_pca.values:
+    clf_prediction = knn(data, child, k=5)
+    predictions.append(clf_prediction)
 
-def main():
-       
-    clf_data = [
-       [22, 1],
-       [23, 1],
-       [21, 1],
-       [18, 1],
-       [19, 1],
-       [25, 0],
-       [27, 0],
-       [29, 0],
-       [31, 0],
-       [45, 0],
-    ]
+cm = metrics.confusion_matrix(l_val_pca, predictions)
+acc = metrics.accuracy_score(l_val_pca, predictions)
 
-    # Question:
-    # Given the data we have, does a 33 year old like pineapples on their pizza?
-    clf_query = [33]
-    clf_k_nearest_neighbors, clf_prediction = knn(
-        clf_data, clf_query, k=3, distance_fn=euclidean_distance, choice_fn=mode
-    )
-
-if __name__ == '__main__':
-    main()
+plt.figure(figsize=(9,9))
+sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'PuRd_r')
+plt.ylabel('Actual label')
+plt.xlabel('Predicted label')
+all_sample_title = 'Accuracy Score: {0}'.format(round(acc,2))
+plt.title(all_sample_title, size = 15)
