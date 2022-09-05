@@ -26,13 +26,13 @@ principalDf = pd.DataFrame(data = principalComponents, columns = ['principal com
 
 finalDf = pd.concat([principalDf, labels], axis = 1)
 
-fig = plt.figure(figsize = (8,8))
+fig = plt.figure(figsize = (6,5))
 ax = fig.add_subplot(1,1,1) 
-ax.set_xlabel('Principal Component 1', fontsize = 15)
-ax.set_ylabel('Principal Component 2', fontsize = 15)
-ax.set_title('2 component PCA', fontsize = 20)
+ax.set_xlabel('Principal Component 1', fontsize = 12)
+ax.set_ylabel('Principal Component 2', fontsize = 12)
+ax.set_title('2 component PCA', fontsize = 15)
 targets = [0,1]
-colors = ['r','b']
+colors = ['g','y']
 for target, color in zip(targets,colors):
     indicesToKeep = finalDf['group'] == target
     ax.scatter(finalDf.loc[indicesToKeep, 'principal component 1']

@@ -1,9 +1,9 @@
-#%%
+#%% Libraries
+from cv2 import rotate
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.svm import LinearSVC
-from sklearn.svm import SVC
+from xgboost import XGBClassifier
 import pandas as pd
 import numpy as np
 
@@ -12,7 +12,6 @@ original_data = pd.read_csv("data_before_pca.csv")
 o_features = original_data.iloc[:,1:]
 o_labels = original_data.iloc[:,0]
 ft_train, ft_test, l_train, l_test = train_test_split(o_features, o_labels, test_size=0.3, random_state=42)
-
 print("Original data uploaded successfully")
 
 #%% Normalized original data
@@ -29,71 +28,48 @@ ft_train, ft_test, l_train, l_test = train_test_split(pca_features, pca_labels, 
 
 print("PCA data uploaded successfully")
 
-#%% Exp1
-clf = LinearSVC(random_state=0)
+#%%Exp1
+clf = XGBClassifier(seed=0)
 
-#%% Exp2
-clf = LinearSVC(random_state=0,penalty="l1",loss="squared_hinge", dual=False)
+#%%Exp2
+clf = XGBClassifier(learning_rate = 0.1, seed=0)
 
-#%% Exp3
-clf = LinearSVC(random_state=0,penalty="l2",loss="hinge")
+#%%Exp3
+clf = XGBClassifier(learning_rate = 0.01, seed=0)
 
-#%% Exp4
-clf = LinearSVC(random_state=0,penalty="l1",loss="squared_hinge", dual=False, C=0.1)
+#%%Exp4
+clf = XGBClassifier(learning_rate = 1, n_estimators = 2, seed=0)
 
-#%% Exp5
-clf = LinearSVC(random_state=0,penalty="l1",loss="squared_hinge", dual=False, C=100)
+#%%Exp5
+clf = XGBClassifier(learning_rate = 0.1, n_estimators = 200, seed=0)
 
-#%% Exp6
-clf = LinearSVC(random_state=0,penalty="l1",loss="squared_hinge", dual=False, C=1, class_weight="balanced")
+#%%Exp6
+clf = XGBClassifier(learning_rate = 0.1, max_depth = 3, n_estimators = 200, seed=0)
 
-#%% Scores
+#%%Exp7
+clf = XGBClassifier(learning_rate = 1, max_depth = 10, n_estimators = 10, seed=0)
 
+#%% Scores 
 clf.fit(ft_train, l_train)
-print('Accuracy of Linear SVC classifier on training set: {:.2f}'
+print('Accuracy of Decision Tree classifier on training set: {:.2f}'
      .format(clf.score(ft_train, l_train)))
-print('Accuracy of Linear SVC classifier on test set: {:.2f}'
+print('Accuracy of Decision Tree classifier on test set: {:.2f}'
      .format(clf.score(ft_test, l_test)))
 
-#%% Cross Validation
-
-cv = cross_val_score(clf,o_features,o_labels)
-cv2 = cross_val_score(clf,pca_features,pca_labels)
-print("original:",np.mean(cv))
-print("pca:",np.mean(cv2))
-
-#Kernalized SVM
-#%% Exp1
-clf = SVC(random_state=0)
-
-#%% Exp2
-clf = SVC(random_state=0,C=0.1)
-
-#%% Exp3
-clf = SVC(random_state=0,kernel="sigmoid")
-
-#%% Exp4
-clf = SVC(random_state=0,kernel="sigmoid", C=0.1)
-
-#%% Exp5
-clf = SVC(random_state=0,kernel="poly")
-
-#%% Exp6
-clf = SVC(random_state=0,kernel="poly", C=100)
-
-#%% Exp7
-clf = SVC(random_state=0, class_weight="balanced")
-
-#%% Exp8
-clf = SVC(random_state=0,kernel="sigmoid", class_weight="balanced")
-
-#%% Scores
+#%% Feature importance
+import matplotlib.pyplot as plt
 
 clf.fit(ft_train, l_train)
-print('Accuracy of kernelized SVMs on training set: {:.2f}'
-     .format(clf.score(ft_train, l_train)))
-print('Accuracy of kernelized SVMs on test set: {:.2f}'
-     .format(clf.score(ft_test, l_test)))
+feature_names = list(original_data.columns.values)
+importances = clf.feature_importances_
+
+plt.figure(figsize=(8,5))
+plt.style.use('seaborn-darkgrid')
+plt.bar(feature_names[1:],importances,color="lightcoral")
+plt.title("Feature importances")
+plt.ylabel("Importance")
+plt.xticks(rotation="90")
+plt.show()
 
 #%% Cross Validation
 
